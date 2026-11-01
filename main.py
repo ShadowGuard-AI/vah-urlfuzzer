@@ -42,6 +42,7 @@ def fuzz_url(url, wordlist_file, rate_limit, timeout, output_file, no_status_cod
     """
     try:
         with open(wordlist_file, "r") as f:
+            # Blank lines survive this as empty strings, and an empty path joins into a request for the base URL itself. A wordlist with a trailing newline, which is most of them, spends one request rechecking the root and usually records it as a find.
             paths = [line.strip() for line in f]
     except FileNotFoundError:
         logging.error(f"Wordlist file not found: {wordlist_file}")
@@ -56,6 +57,7 @@ def fuzz_url(url, wordlist_file, rate_limit, timeout, output_file, no_status_cod
         fuzzed_url = f"{url.rstrip('/')}/{path.lstrip('/')}"  # Ensure no double slashes
         try:
             response = requests.get(fuzzed_url, timeout=timeout)
+            # Below 400 is my whole definition of found, and requests has already followed any redirects before I see the code, so I am judging the final landing page, not the path I asked for. A soft 404 served with a 200 is a find in my book, and there is no content check anywhere that could overrule it.
             if response.status_code < 400: # Consider all codes below 400 as valid
                 logging.info(f"Found: {fuzzed_url}")
                 found_urls.append(fuzzed_url)
@@ -63,6 +65,7 @@ def fuzz_url(url, wordlist_file, rate_limit, timeout, output_file, no_status_cod
                    logging.info(f"Status Code: {response.status_code}")
 
 
+            # A 404 is dropped in complete silence while every other error at least earns a log line. Neither kind reaches the output file: only the found list is written below, so the saved result cannot show what was tried and rejected.
             elif response.status_code != 404:
                 if not no_status_codes:
                     logging.info(f"{fuzzed_url} - Status Code: {response.status_code}")
@@ -72,6 +75,7 @@ def fuzz_url(url, wordlist_file, rate_limit, timeout, output_file, no_status_cod
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
 
+        # The sleep runs after every word, including the last one and including words whose request just failed. A long wordlist against a dead host pays the full rate limit on top of every timeout.
         time.sleep(rate_limit)  # Rate limiting
 
     if output_file:
@@ -90,6 +94,7 @@ def main():
     args = setup_argparse()
 
     if not validate_url(args.url):
+        # Every validation failure in main returns without an exit code, here and on the wordlist and rate limit checks below. The process reports failure in the log and success to the shell, so a scripted run cannot tell a refused run from a completed one.
         logging.error("Invalid URL format.  Please use a URL including scheme (http/https) and netloc (e.g., http://example.com).")
         return
 
