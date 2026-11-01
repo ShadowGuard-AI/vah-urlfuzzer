@@ -1,19 +1,20 @@
 # vah-URLFuzzer
-Performs basic URL fuzzing against a given URL to identify common files and directories (e.g., .env, backup files, admin panels). Uses `requests` and a wordlist for common paths. Includes rate limiting to avoid overloading the target. - Focused on Automates tasks related to vulnerability assessment. Scrapes security advisories from specified websites, correlates vulnerabilities with installed software versions (determined through system information collection), and generates prioritized remediation recommendations.  Does NOT replace a full VA tool, but augments existing processes.
+
+Performs basic URL fuzzing against a given URL to identify common files and directories (for example admin panels or backup files). It sends one GET request for each non-blank wordlist path, after a baseline probe of a random nonexistent path. A path is reported as found only when its response status is below 400 and its status and body size differ from the baseline response, so a catch-all server that answers every path the same way does not produce invented finds. It includes rate limiting, an optional output file for found URLs, and non-zero exit codes when the URL is invalid, the wordlist cannot be read, or every request fails.
 
 ## Install
-`git clone https://github.com/ShadowStrikeHQ/vah-urlfuzzer`
+`git clone https://github.com/ShadowGuard-AI/vah-urlfuzzer`
 
 ## Usage
-`./vah-urlfuzzer [params]`
+`python main.py http://example.com -w common.txt`
 
 ## Parameters
 - `-h`: Show help message and exit
-- `-w`: No description provided
-- `-r`: No description provided
-- `-t`: No description provided
+- `-w`: Path to the wordlist file (default: common.txt)
+- `-r`: Rate limit in seconds between requests (default: 0.5)
+- `-t`: Request timeout in seconds (default: 10)
 - `-o`: Output file to save found URLs
 - `--no-status-codes`: Do not print HTTP status codes.
 
 ## License
-Copyright (c) ShadowStrikeHQ
+Copyright (c) ShadowGuard-AI
